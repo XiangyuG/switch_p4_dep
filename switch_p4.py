@@ -412,7 +412,90 @@ new_dic["drop_stats"] = {}
 new_dic["drop_stats"]["M"] = [""]
 new_dic["drop_stats"]["A"] = [""]
 
-for key in new_dic:
-    print(key)
-    print(new_dic[key]["M"])
-    print(new_dic[key]["A"])
+def overlap(l1, l2):
+    for e in l1:
+        if e in l2:
+            return True
+    return False
+
+key_list = list(new_dic.keys())
+cnt = 0
+# Forbidden pair:
+forbidden_dic = {}
+forbidden_dic["validate_outer_ipv4_packet"] = ["validate_outer_ipv6_packet","validate_mpls_packet"]
+forbidden_dic["validate_outer_ipv6_packet"] = ["validate_mpls_packet"]
+
+forbidden_dic["ingress_qos_map_dscp"] = ["ingress_qos_map_pcp"]
+forbidden_dic["ipsg"] = ["ipsg_permit_special"]
+
+forbidden_dic["int_source"] = ["int_terminate"]
+
+forbidden_dic["fabric_ingress_src_lkp"] = ["native_packet_over_fabric"]
+
+forbidden_dic["outer_ipv4_multicast"] = ["outer_ipv4_multicast_star_g", "outer_ipv6_multicast", "outer_ipv6_multicast_star_g",
+                                         "ipv4_src_vtep", "ipv4_dest_vtep", "ipv6_src_vtep", "ipv6_dest_vtep", "mpls"]
+forbidden_dic["outer_ipv4_multicast_star_g"] = ["outer_ipv6_multicast", "outer_ipv6_multicast_star_g",
+                                                "ipv4_src_vtep", "ipv4_dest_vtep", "ipv6_src_vtep", "ipv6_dest_vtep", "mpls"]
+forbidden_dic["outer_ipv6_multicast"] = ["outer_ipv6_multicast_star_g",
+                                         "ipv4_src_vtep", "ipv4_dest_vtep", "ipv6_src_vtep", "ipv6_dest_vtep", "mpls"]
+forbidden_dic["outer_multicast_rpf"] = ["ipv4_src_vtep", "ipv4_dest_vtep", "ipv6_src_vtep", "ipv6_dest_vtep", "mpls"]
+forbidden_dic["ipv4_src_vtep"] = ["ipv6_src_vtep", "ipv6_dest_vtep", "mpls"]
+forbidden_dic["ipv4_dest_vtep"] = ["ipv6_src_vtep", "ipv6_dest_vtep", "mpls"]
+forbidden_dic["ipv6_src_vtep"] = ["mpls"]
+forbidden_dic["ipv6_dest_vtep"] = ["mpls"]
+
+forbidden_dic["mac_acl"] = ["ip_acl","ipv6_acl"]
+forbidden_dic["ip_acl"] = ["ipv6_acl"]
+
+forbidden_dic["ipv4_multicast_bridge"] = ["ipv4_multicast_bridge_star_g","ipv6_multicast_bridge","ipv6_multicast_bridge_star_g",
+                                          "ipv4_racl", "ipv4_urpf", "ipv4_urpf_lpm", "ipv4_fib", "ipv4_fib_lpm", "ipv6_racl", "ipv6_urpf", 
+                                          "ipv6_urpf_lpm", "ipv6_fib", "ipv6_fib_lpm"]
+forbidden_dic["ipv4_multicast_bridge_star_g"] = ["ipv6_multicast_bridge","ipv6_multicast_bridge_star_g",
+                                                "ipv4_racl", "ipv4_urpf", "ipv4_urpf_lpm", "ipv4_fib", "ipv4_fib_lpm", "ipv6_racl", 
+                                                "ipv6_urpf", "ipv6_urpf_lpm", "ipv6_fib", "ipv6_fib_lpm"]
+forbidden_dic["ipv6_multicast_bridge"] = ["ipv6_multicast_bridge_star_g",
+                                          "ipv4_racl", "ipv4_urpf", "ipv4_urpf_lpm", "ipv4_fib", "ipv4_fib_lpm", "ipv6_racl",
+                                          "ipv6_urpf", "ipv6_urpf_lpm", "ipv6_fib", "ipv6_fib_lpm"]
+forbidden_dic["multicast_rpf"] = ["ipv4_racl", "ipv4_urpf", "ipv4_urpf_lpm", "ipv4_fib", "ipv4_fib_lpm", "ipv6_racl",
+                                   "ipv6_urpf", "ipv6_urpf_lpm", "ipv6_fib", "ipv6_fib_lpm"]
+
+forbidden_dic["ipv4_racl"] = ["ipv6_racl", "ipv6_urpf", "ipv6_urpf_lpm", "ipv6_fib", "ipv6_fib_lpm"]
+forbidden_dic["ipv4_urpf"] = ["ipv4_urpf_lpm", "ipv6_racl", "ipv6_urpf", "ipv6_urpf_lpm", "ipv6_fib", "ipv6_fib_lpm"]
+forbidden_dic["ipv4_fib"] = ["ipv4_fib_lpm", "ipv6_racl", "ipv6_urpf", "ipv6_urpf_lpm", "ipv6_fib", "ipv6_fib_lpm"]
+
+forbidden_dic["ipv6_urpf"] = ["ipv4_urpf_lpm"]
+forbidden_dic["ipv6_fib"] = ["ipv4_fib_lpm"]
+
+forbidden_dic["nat_twice"] = ["nat_dst", "nat_src", "nat_flow"]
+forbidden_dic["nat_dst"] = ["nat_src", "nat_flow"]
+forbidden_dic["nat_src"] = ["nat_flow"]
+
+forbidden_dic["compute_ipv4_hashes"] = ["compute_ipv6_hashes", "compute_non_ip_hashes"]
+forbidden_dic["compute_ipv6_hashes"] = ["compute_non_ip_hashes"]
+
+forbidden_dic["ecmp_group"] = ["nexthop"]
+
+
+
+for i in range(len(key_list)):
+    for j in range(i + 1, len(key_list)):
+        key1 = key_list[i]
+        key2 = key_list[j]
+        if key1 in forbidden_dic and key2 in forbidden_dic[key1]:
+            continue
+        M1 = new_dic[key1]['M']
+        M2 = new_dic[key2]['M']
+        A1 = new_dic[key1]['A']
+        A2 = new_dic[key2]['A']
+        # match dep
+        if overlap(A1, M2):
+            cnt += 1
+            print(key1, "has MATCH dep with", key2)
+        elif overlap(A1, A2):
+            cnt += 1
+            print(key1, "has ACTION dep with", key2)
+        elif overlap(M1, A2):
+            cnt += 1
+            print(key1, "has REVERSE dep with", key2)
+
+print("cnt =", cnt)
